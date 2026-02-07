@@ -1,6 +1,44 @@
-# Use a multi-stage build to combine the specific images
-FROM mempool/frontend:v3.2.1 AS frontend
-FROM mempool/backend:v3.2.1 AS backend
+###############################################################################
+# Stage 1: Build the BIP-110 frontend from source
+###############################################################################
+FROM node:22.14.0-bookworm-slim AS frontend-builder
+
+WORKDIR /build
+COPY mempool/frontend/ .
+RUN apt-get update && apt-get install -y build-essential rsync && apt-get clean
+RUN cp mempool-frontend-config.sample.json mempool-frontend-config.json
+ENV SKIP_SYNC=1
+ENV CYPRESS_INSTALL_BINARY=0
+RUN npm install --omit=dev --omit=optional
+RUN npm run build
+
+###############################################################################
+# Stage 2: Build the BIP-110 backend from source (includes Rust GBT)
+###############################################################################
+FROM rust:1.84-bookworm AS backend-builder
+
+WORKDIR /build
+
+# Install Node.js 22
+RUN apt-get update && \
+  apt-get install -y curl ca-certificates && \
+  curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+  apt-get install -y nodejs=22.14.0-1nodesource1 build-essential python3 pkg-config && \
+  apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Copy backend and rust sources
+COPY mempool/backend/ .
+COPY mempool/rust/ ../rust/
+
+ENV PATH="/usr/local/cargo/bin:$PATH"
+ENV FD=/build/rust-gbt
+RUN npm install --omit=dev --omit=optional
+RUN npm run package
+
+###############################################################################
+# Stage 3: Final image — MariaDB + nginx + backend + frontend + Start9 wrapper
+###############################################################################
+FROM rust:1.84-bookworm
 
 ENV MEMPOOL_CLEAR_PROTECTION_MINUTES="20"
 ENV MEMPOOL_INDEXING_BLOCKS_AMOUNT="52560"
@@ -21,6 +59,11 @@ RUN apt-get update && \
   && wget https://github.com/mikefarah/yq/releases/download/v4.6.3/yq_linux_${PLATFORM}.tar.gz -O - |\
   tar xz && mv yq_linux_${PLATFORM} /usr/bin/yq \
   && apt-get clean
+
+# Install Node.js 22 for backend runtime
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+  apt-get install -y nodejs=22.14.0-1nodesource1 && \
+  apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Create mysql user and group
 RUN groupadd -r mysql && useradd -r -g mysql mysql
@@ -51,12 +94,24 @@ RUN set -eux; \
   apt-mark hold mariadb-server mariadb-client && \
   rm -rf /var/lib/apt/lists/* /tmp/mariadb
 
-# Copy frontend files
-COPY --from=frontend /patch/entrypoint.sh /patch/entrypoint.sh
-COPY --from=frontend /patch/wait-for /patch/wait-for
-COPY --from=frontend /var/www/mempool /var/www/mempool
-COPY --from=frontend /etc/nginx/nginx.conf /etc/nginx/
-COPY --from=frontend /etc/nginx/conf.d/nginx-mempool.conf /etc/nginx/conf.d/
+# Copy frontend build output
+COPY --from=frontend-builder /build/dist/mempool /var/www/mempool
+
+# Copy frontend runtime scripts from docker context
+COPY mempool/docker/frontend/entrypoint.sh /patch/entrypoint.sh
+COPY mempool/docker/frontend/wait-for /patch/wait-for
+RUN chmod +x /patch/entrypoint.sh /patch/wait-for
+
+# Copy nginx configs from source
+COPY mempool/nginx.conf /etc/nginx/
+COPY mempool/nginx-mempool.conf /etc/nginx/conf.d/
+
+# Copy backend build output
+COPY --from=backend-builder /build/package /backend/package/
+COPY mempool/docker/backend/mempool-config.json /backend/
+COPY mempool/docker/backend/start.sh /backend/
+COPY mempool/docker/backend/wait-for-it.sh /backend/
+RUN chmod +x /backend/start.sh /backend/wait-for-it.sh
 
 # BUILD S9 CUSTOM
 ADD ./docker_entrypoint.sh /usr/local/bin/docker_entrypoint.sh
@@ -66,5 +121,7 @@ RUN mkdir -p /usr/local/bin/migrations
 ADD ./scripts/migrations/*.sh /usr/local/bin/migrations
 RUN chmod a+x /usr/local/bin/migrations/*
 
-# remove to we can manually handle db initalization
+# remove so we can manually handle db initialization
 RUN rm -rf /var/lib/mysql/
+
+WORKDIR /backend

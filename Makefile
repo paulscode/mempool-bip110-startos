@@ -21,11 +21,11 @@ clean:
 scripts/embassy.js: $(TS_FILES)
 	deno run --allow-read --allow-write --allow-env --allow-net scripts/bundle.ts
 
-docker-images/x86_64.tar: Dockerfile docker_entrypoint.sh assets/utils/*
+docker-images/x86_64.tar: Dockerfile docker_entrypoint.sh assets/utils/* mempool/frontend mempool/backend mempool/rust
 	mkdir -p docker-images
 	docker buildx build --tag start9/$(PKG_ID)/main:$(PKG_VERSION) --platform=linux/amd64 --build-arg PLATFORM=amd64 -o type=docker,dest=docker-images/x86_64.tar .
 
-docker-images/aarch64.tar: Dockerfile docker_entrypoint.sh assets/utils/*
+docker-images/aarch64.tar: Dockerfile docker_entrypoint.sh assets/utils/* mempool/frontend mempool/backend mempool/rust
 	mkdir -p docker-images
 	docker buildx build --tag start9/$(PKG_ID)/main:$(PKG_VERSION) --platform=linux/arm64 --build-arg PLATFORM=arm64 -o type=docker,dest=docker-images/aarch64.tar .
 

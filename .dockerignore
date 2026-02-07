@@ -1,0 +1,15 @@
+# Exclude build artifacts and non-essential files from Docker context
+.git
+.github
+docker-images/
+*.s9pk
+
+# Exclude parts of the submodule not needed for the build
+mempool/.git/
+mempool/.github/
+mempool/contributors/
+mempool/production/
+mempool/unfurler/
+mempool/docker/mysql/
+mempool/docker/data/
+mempool/docker/scripts/

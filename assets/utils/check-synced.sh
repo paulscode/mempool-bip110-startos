@@ -17,13 +17,13 @@ check_sync(){
     if (($DURATION <= 5000 )); then
         exit 60
     elif test "$IBD_STATE" != 1; then
-        echo "Initial blockchain download still in progress. Mempool will not display correctly until this is complete." >&2
+        echo "Initial blockchain download still in progress. Mempool BIP-110 will not display correctly until this is complete." >&2
         exit 61
     elif test "$TXINDEX_CHECK" != 1; then
-        echo "Transaction Indexer is not enabled. Mempool will not display properly." >&2
+        echo "Transaction Indexer is not enabled. Mempool BIP-110 will not display properly." >&2
         exit 1
     elif test "$TXINDEX_SYNC" != 1; then
-        echo "Transaction Indexer is still syncing. Mempool will not display correctly until sync is complete." >&2
+        echo "Transaction Indexer is still syncing. Mempool BIP-110 will not display correctly until sync is complete." >&2
         exit 61
     fi
 }

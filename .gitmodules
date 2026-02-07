@@ -1,0 +1,4 @@
+[submodule "mempool"]
+	path = mempool
+	url = https://github.com/paulscode/mempool-bip110.git
+	branch = v3.2.1

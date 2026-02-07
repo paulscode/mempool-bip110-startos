@@ -17,7 +17,7 @@ __MEMPOOL_BACKEND_MAINNET_HTTP_HOST__=${BACKEND_MAINNET_HTTP_HOST:=127.0.0.1}
 __MEMPOOL_BACKEND_MAINNET_HTTP_PORT__=${BACKEND_MAINNET_HTTP_PORT:=8999}
 __MEMPOOL_FRONTEND_HTTP_PORT__=${FRONTEND_HTTP_PORT:=8080}
 __ACCELERATOR_BUTTON__=true
-__SERVICES_API__="https://mempool.embassy/api/v1/services"
+__SERVICES_API__="https://mempool-rdts.embassy/api/v1/services"
 
 sed -i "s/__MEMPOOL_BACKEND_MAINNET_HTTP_HOST__/${__MEMPOOL_BACKEND_MAINNET_HTTP_HOST__}/g" /etc/nginx/conf.d/nginx-mempool.conf
 sed -i "s/__MEMPOOL_BACKEND_MAINNET_HTTP_PORT__/${__MEMPOOL_BACKEND_MAINNET_HTTP_PORT__}/g" /etc/nginx/conf.d/nginx-mempool.conf
@@ -36,7 +36,7 @@ HOST_IP=$(ip -4 route list match 0/0 | awk '{print $3}')
 bitcoind_user=$(yq e '.bitcoin-user' /root/start9/config.yaml)
 bitcoind_pass=$(yq e '.bitcoin-password' /root/start9/config.yaml)
 bitcoind_host="bitcoind.embassy"
-__MEMPOOL_SERVICES_API__="https://mempool.embassy/api/v1/services"
+__MEMPOOL_SERVICES_API__="https://mempool-rdts.embassy/api/v1/services"
 
 sed -i "s/CORE_RPC_HOST:=127.0.0.1/CORE_RPC_HOST:=$bitcoind_host/" start.sh
 sed -i "s/CORE_RPC_USERNAME:=mempool/CORE_RPC_USERNAME:=$bitcoind_user/" start.sh
@@ -44,6 +44,9 @@ sed -i "s/CORE_RPC_PASSWORD:=mempool/CORE_RPC_PASSWORD:=$bitcoind_pass/" start.s
 
 # adjust heap size
 sed -i "s/node \/backend\/package\/index.js/node --max-old-space-size=16384 \/backend\/package\/index.js/" start.sh
+
+# Disable MaxMind GeoIP (databases not included in this package)
+sed -i 's/MAXMIND_ENABLED:=true/MAXMIND_ENABLED:=false/' start.sh
 
 # Configure mempool to set lightning to true if lightning is enabled
 if [ "$(yq e ".lightning.type" /root/start9/config.yaml)" = "none" ]; then

@@ -1,19 +1,22 @@
-id: mempool
-title: Mempool
-version: 3.2.1.3
+id: mempool-rdts
+title: Mempool BIP-110
+version: 3.2.1
 release-notes: |
-  * Fix bug where lightning tab appeared even when disabled
-  * Add Fulcrum as optinal indexer
+  * Initial release of Mempool BIP-110 visualization fork
+  * Added BIP-110 miner signaling detection with celebratory visuals
+  * Added BIP-110 consensus rule violation detection for transactions
+  * Warning-style visualization for transactions that would be invalid under BIP-110
+  * Based on Mempool v3.2.1
 license: AGPL
-wrapper-repo: "https://github.com/Start9Labs/mempool-wrapper"
-upstream-repo: "https://github.com/mempool/mempool"
-support-site: "https://mempool.space/docs/api/rest"
-marketing-site: "https://mempool.space/"
+wrapper-repo: "https://github.com/paulscode/mempool-bip110-startos"
+upstream-repo: "https://github.com/paulscode/mempool-bip110"
+support-site: "https://github.com/paulscode/mempool-bip110/issues"
+marketing-site: "https://github.com/paulscode/mempool-bip110"
 donation-url: "https://mempool.space/sponsor"
 build: ["make"]
 description:
-  short: "Be your own explorer"
-  long: "Run your own instance of The Mempool Open Source Project and trust no one.\n\nUse your own node to beautifully visualize data about the Bitcoin network, transactions, blockchain, mempool, and more.\n\nThis product includes GeoLite2 data created by MaxMind, available from https://www.maxmind.com."
+  short: "BIP-110 visualization explorer"
+  long: "A specialized fork of Mempool for visualizing BIP-110 (Reduced Data Temporary Softfork) related information.\n\nFeatures:\n• Highlights blocks from miners signaling BIP-110 support with celebratory visuals\n• Identifies transactions that would violate BIP-110 consensus rules with warning indicators\n• Full Mempool explorer functionality\n\nThis helps you understand the impact of BIP-110 before and during activation.\n\nBased on The Mempool Open Source Project. This product includes GeoLite2 data created by MaxMind, available from https://www.maxmind.com."
 assets:
   license: LICENSE
   icon: icon.png
@@ -32,11 +35,11 @@ main:
 health-checks:
   web-ui:
     name: Web Interface
-    success-message: The Mempool UI is ready to visit in a web browser
+    success-message: The Mempool BIP-110 UI is ready to visit in a web browser
     type: script
   api:
     name: API
-    success-message: The Mempool API is reachable and responsive.
+    success-message: The Mempool BIP-110 API is reachable and responsive.
     type: docker
     image: main
     system: false
@@ -47,7 +50,7 @@ health-checks:
     io-format: json
   synced:
     name: Transaction Indexer
-    success-message: Bitcoin is fully indexed. You may now launch Mempool.
+    success-message: Bitcoin is fully indexed. You may now launch Mempool BIP-110.
     type: docker
     image: main
     system: false
@@ -119,12 +122,17 @@ volumes:
     readonly: true
 alerts:
   start: |
-    READ CAREFULLY! When first running Mempool, previous block fee estimates will show as zero values until the service is able to catch up. This is expected behaviour.
-    ALSO: Lookups may be slow or time out altogether while the service is still warming up, or if there are too many other things running on your system. If address lookups aren't working, try restarting electrs and try the lookup again.
+    READ CAREFULLY! Mempool BIP-110 is a specialized fork for visualizing BIP-110-related information.
+    
+    FEATURES:
+    • Blocks from miners signaling BIP-110 are highlighted with green/gold celebratory styling
+    • Transactions violating BIP-110 rules are shown with orange warning indicators
+    
+    NOTE: When first running, previous block fee estimates will show as zero values until the service catches up. Lookups may be slow while warming up.
 interfaces:
   main:
-    name: Mempool Interface
-    description: Specifies the mempool interface to listen on for HTTP connections.
+    name: Mempool BIP-110 Interface
+    description: Specifies the Mempool BIP-110 interface to listen on for HTTP connections.
     tor-config:
       port-mapping:
         80: "8080"
@@ -171,42 +179,10 @@ backup:
     io-format: yaml
 migrations:
   from:
-    "<2.3.1.4":
-      type: script
-      args: ["from"]
-    ">=2.3.1.4 <2.5.0":
-      type: script
-      args: ["from"]
-    ">=2.5.0 <=3.0.0.3":
-      type: docker
-      image: main
-      system: false
-      entrypoint: /usr/local/bin/migrations/gt_2_5_0_lt_3_0_0_2.sh
-      args: ["from"]
-      io-format: json
-      mounts:
-        main: /root
-      inject: false
-    ">3.0.0.3":
+    "*":
       type: script
       args: ["from"]
   to:
-    "<2.3.1.4":
-      type: script
-      args: ["to"]
-    ">=2.3.1.4 <2.5.0":
-      type: script
-      args: ["to"]
-    ">=2.5.0 <=3.0.0.3":
-      type: docker
-      image: main
-      system: false
-      entrypoint: /usr/local/bin/migrations/gt_2_5_0_lt_3_0_0_2.sh
-      args: ["to"]
-      io-format: json
-      mounts:
-        main: /root
-      inject: false
-    ">3.0.0.3":
+    "*":
       type: script
       args: ["to"]

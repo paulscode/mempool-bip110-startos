@@ -42,13 +42,13 @@ export const dependencies: T.ExpectedExports.dependencies = {
       if (config.advanced.pruning.mode == "enabled") {
         return {
           error:
-            "Pruning must be disabled to use Bitcoin Core.",
+            "Pruning must be disabled to use Mempool BIP-110.",
         };
       }
       const limit = await getSystemMemoryLimit(effects);
       if (limit > 300 && config.advanced.mempool.maxmempool > limit) {
         return {
-          error: "In order to safely run Mempool, Bitcoin Core's \"maxmempool\" size cannot exceed 1/6 of the system RAM"
+          error: "In order to safely run Mempool BIP-110, Bitcoin Core's \"maxmempool\" size cannot exceed 1/6 of the system RAM"
         }
       }
       return { result: null };
