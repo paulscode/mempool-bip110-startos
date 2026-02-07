@@ -79,7 +79,7 @@ Then install:
 
 ```
 start-cli auth login
-start-cli package install /tmp/mempool-rdts.s9pk
+start-cli package install /tmp/mempool-bip110.s9pk
 ```
 
 ### Requirements
