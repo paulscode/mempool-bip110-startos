@@ -5,6 +5,8 @@ FROM node:22.14.0-bookworm-slim AS frontend-builder
 
 WORKDIR /build
 COPY mempool/frontend/ .
+# Bundle mining pool logos (sync-assets is skipped during Docker builds)
+COPY assets/mining-pools/ src/resources/mining-pools/
 RUN apt-get update && apt-get install -y build-essential rsync && apt-get clean
 RUN cp mempool-frontend-config.sample.json mempool-frontend-config.json
 ENV SKIP_SYNC=1

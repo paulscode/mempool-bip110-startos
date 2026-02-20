@@ -1,4 +1,4 @@
-export MEMPOOL_VERSION=$(awk 'match($0,/version:[^ ]*/){ print substr($0, RSTART+9,5)}'  manifest.yaml | awk 'NR == 1')
+export MEMPOOL_VERSION=$(awk '/^version:/{print $2; exit}' manifest.yaml)
 echo 'v'$MEMPOOL_VERSION
 
 # Old method of getting the Version number from mempool/mempool, does not work.

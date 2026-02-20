@@ -1,11 +1,11 @@
 id: mempool-rdts
 title: Mempool BIP-110
-version: 3.2.1
+version: 3.2.1.1
 release-notes: |
-  * Initial release of Mempool BIP-110 visualization fork
-  * Added BIP-110 miner signaling detection with celebratory visuals
-  * Added BIP-110 consensus rule violation detection for transactions
-  * Warning-style visualization for transactions that would be invalid under BIP-110
+  * BIP-110 deployment phase indicator on dashboard
+  * Background scanner for historic block violation stats with progress bar
+  * Performance optimizations for block loading without txindex
+  * Fixed mining pool icon loading
   * Based on Mempool v3.2.1
 license: AGPL
 wrapper-repo: "https://github.com/paulscode/mempool-bip110-startos"
