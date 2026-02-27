@@ -1,12 +1,35 @@
 #!/bin/bash
 set -ea
 
+# Initialize PID variables so the trap handler can reference them safely
+backend_process=""
+db_process=""
+frontend_process=""
+
 _term() {
   echo "Caught SIGTERM signal!"
-  kill -TERM "$backend_process" 2>/dev/null
-  kill -TERM "$db_process" 2>/dev/null
-  kill -TERM "$frontend_process" 2>/dev/null
+  # Stop the backend first (quick Node.js shutdown)
+  if [ -n "$backend_process" ]; then
+    kill -TERM "$backend_process" 2>/dev/null
+    wait "$backend_process" 2>/dev/null
+  fi
+  # Stop nginx
+  if [ -n "$frontend_process" ]; then
+    kill -TERM "$frontend_process" 2>/dev/null
+    wait "$frontend_process" 2>/dev/null
+  fi
+  # Gracefully shut down MariaDB (much faster & safer than raw SIGTERM)
+  if [ -n "$db_process" ]; then
+    echo "Shutting down MariaDB gracefully..."
+    mysqladmin -u root shutdown 2>/dev/null || kill -TERM "$db_process" 2>/dev/null
+    wait "$db_process" 2>/dev/null
+  fi
+  echo "All processes stopped."
+  exit 0
 }
+
+# Register the trap BEFORE starting any background processes
+trap _term SIGTERM SIGINT
 
 # FRONTEND SETUP
 
@@ -120,7 +143,7 @@ if [ ! -d "$MYSQL_DATADIR/mysql" ]; then
 
 	tfile=`mktemp`
 	if [ ! -f "$tfile" ]; then
-	    return 1
+	    exit 1
 	fi
 
 	cat << EOF > $tfile
@@ -205,9 +228,10 @@ frontend_process=$!
 /backend/wait-for-it.sh localhost:3306 --timeout=720 --strict -- ./start.sh &
 backend_process=$!
 
-echo 'All processes initalized'
+echo 'All processes initialized'
 
-# SIGTERM HANDLING
-trap _term SIGTERM
-
+# Wait for ALL child processes — if any one exits unexpectedly, clean up and exit
 wait -n $db_process $backend_process $frontend_process
+EXIT_CODE=$?
+echo "A child process exited (code=$EXIT_CODE), shutting down..."
+_term

@@ -1,11 +1,11 @@
 id: mempool-rdts
 title: Mempool BIP-110
-version: 3.2.1.1
+version: 3.2.1.2
 release-notes: |
-  * BIP-110 deployment phase indicator on dashboard
-  * Background scanner for historic block violation stats with progress bar
-  * Performance optimizations for block loading without txindex
-  * Fixed mining pool icon loading
+  * Fixed uninstallation failure caused by improper container shutdown
+  * SIGTERM trap now registered before background processes start
+  * MariaDB gracefully shut down via mysqladmin instead of raw kill
+  * All child processes properly waited on during shutdown
   * Based on Mempool v3.2.1
 license: AGPL
 wrapper-repo: "https://github.com/paulscode/mempool-bip110-startos"
