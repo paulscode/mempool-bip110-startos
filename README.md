@@ -4,6 +4,8 @@ A [StartOS](https://start9.com/) wrapper for [Mempool BIP-110](https://github.co
 
 > **This is not a wrapper for upstream Mempool.** It packages the BIP-110 fork, which contains custom frontend and backend changes that are not present in the original Mempool project. It can be installed alongside the standard Mempool package on the same StartOS server.
 
+> **Supports both StartOS 0.3.5.1 and 0.4.0.** Both packages are built from this one repo and the same `Dockerfile`/submodule — see [Building](#building).
+
 ## 🎯 Why does this exist?
 
 [BIP-110](https://github.com/dathonohm/bips/blob/reduced-data/bip-0110.mediawiki) (Reduced Data Temporary Softfork) is a proposed temporary soft fork that would limit methods of embedding arbitrary data into Bitcoin transactions — targeting inscriptions and other data-heavy payloads that burden node operators, while preserving all known monetary use cases. It uses BIP9-style miner signaling (version bit 4, 55% activation threshold) for a one-year deployment.
@@ -41,7 +43,8 @@ All standard Mempool explorer functionality (mempool visualization, fee estimati
 - [yq](https://mikefarah.gitbook.io/yq) (Go version by mikefarah)
 - [toml](https://crates.io/crates/toml-cli)
 - [make](https://www.gnu.org/software/make)
-- [Start9 SDK](https://docs.start9.com/)
+- [Start9 SDK](https://docs.start9.com/) — `start-sdk` (0.3.5.1 build) and `start-cli` (0.4.0 build)
+- [Node.js + npm](https://nodejs.org/) — for the StartOS 0.4.0 build (`startos/`)
 
 ## Cloning
 
@@ -51,7 +54,7 @@ cd mempool-bip110-startos
 git submodule update --init --recursive
 ```
 
-The `mempool/` submodule points to the [Mempool BIP-110 fork](https://github.com/paulscode/mempool-bip110) at the v3.2.1 tag.
+The `mempool/` submodule tracks the `master` branch of the [Mempool BIP-110 fork](https://github.com/paulscode/mempool-bip110) and is pinned to a specific commit for reproducible builds.
 
 For cross-architecture builds (ARM64), also run:
 
@@ -61,11 +64,30 @@ docker run --privileged --rm tonistiigi/binfmt --install arm64,riscv64,arm
 
 ## Building
 
+This repo builds **two** packages from one source tree, both from the same
+`Dockerfile`/submodule:
+
+- **StartOS 0.3.5.1** (Embassy SDK) — `manifest.yaml` + `scripts/embassy.js`, packed with `start-sdk`.
+- **StartOS 0.4.0** (start-sdk TS) — `startos/`, packed with `start-cli`.
+
+Each produces a single universal `.s9pk` containing **x86_64 + aarch64**.
+
 ```
-make
+# StartOS 0.3.5.1
+make                  # universal -> mempool-rdts.s9pk
+make x86 | make arm   # single arch (faster)
+
+# StartOS 0.4.0  (every output is named with "040")
+make 040              # universal  -> mempool-rdts_040.s9pk
+make pack-040-x86     # single arch -> mempool-rdts_040_x86_64.s9pk
+make install-040-x86  # build x86_64 + install to your 0.4.0 server
+
+# Both, for an official release
+make release          # -> builds/<version>/{mempool-rdts-0351.s9pk, mempool-rdts-040.s9pk} + SHA256SUMS
 ```
 
-This builds Docker images for both x86_64 and aarch64, bundles the TypeScript service scripts, and packs the final `.s9pk`.
+The 0.4.0 build requires Node.js/npm (to compile `startos/` via `npm run build`)
+and `start-cli`; the first build runs `npm ci` automatically.
 
 ## Installing (on StartOS)
 

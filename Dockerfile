@@ -54,9 +54,12 @@ USER root
 ARG PLATFORM
 # aarch64 or x86_64
 ARG ARCH
+# Provided automatically by buildx (0.4.0 dockerBuild path); the 0.3.x build
+# passes PLATFORM explicitly. Derive PLATFORM from TARGETARCH when not set.
+ARG TARGETARCH
 # Install necessary packages
-RUN apt-get update && \
-  apt-get install -y --allow-downgrades nginx wait-for-it wget netcat-traditional \
+RUN PLATFORM="${PLATFORM:-${TARGETARCH}}"; apt-get update && \
+  apt-get install -y --allow-downgrades nginx wait-for-it wget netcat-traditional jq \
   build-essential python3 pkg-config rsync gettext iproute2 pwgen \
   && wget https://github.com/mikefarah/yq/releases/download/v4.6.3/yq_linux_${PLATFORM}.tar.gz -O - |\
   tar xz && mv yq_linux_${PLATFORM} /usr/bin/yq \
@@ -82,6 +85,7 @@ RUN echo "deb http://archive.debian.org/debian buster main" > /etc/apt/sources.l
 
 # Install MariaDB 10.4 via .deb packages
 RUN set -eux; \
+  export PLATFORM="${PLATFORM:-${TARGETARCH}}"; \
   export MARIADB_VERSION=10.4.32; \
   export DISTRO=deb10; \
   export BASE_URL=https://archive.mariadb.org/mariadb-${MARIADB_VERSION}/repo/debian/pool/main/m/mariadb-10.4; \
@@ -117,6 +121,7 @@ RUN chmod +x /backend/start.sh /backend/wait-for-it.sh
 
 # BUILD S9 CUSTOM
 ADD ./docker_entrypoint.sh /usr/local/bin/docker_entrypoint.sh
+ADD ./docker_entrypoint_040.sh /usr/local/bin/docker_entrypoint_040.sh
 ADD assets/utils/*.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/*.sh
 RUN mkdir -p /usr/local/bin/migrations
