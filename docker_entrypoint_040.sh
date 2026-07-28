@@ -57,7 +57,16 @@ sed -i "s/__MEMPOOL_BACKEND_MAINNET_HTTP_PORT__/${__MEMPOOL_BACKEND_MAINNET_HTTP
 
 cp /etc/nginx/conf.d/nginx-mempool.conf /etc/nginx/nginx-mempool.conf
 
-cp /etc/nginx/nginx.conf /backend/nginx.conf
+# Substitute from a pristine, never-overwritten template. If this entrypoint
+# re-runs within the same subcontainer instance (e.g. a crash-restart), using
+# /etc/nginx/nginx.conf as both source and destination would re-apply
+# "s/listen 80/listen 8080/" to its own prior output on every pass, turning
+# "listen 8080;" into "listen 808080;", "listen 8080808080;", etc.
+NGINX_CONF_DIST="/etc/nginx/nginx.conf.dist"
+if [ ! -f "$NGINX_CONF_DIST" ]; then
+  cp /etc/nginx/nginx.conf "$NGINX_CONF_DIST"
+fi
+cp "$NGINX_CONF_DIST" /backend/nginx.conf
 sed -i -e "s/__MEMPOOL_FRONTEND_HTTP_PORT__/${__MEMPOOL_FRONTEND_HTTP_PORT__}/g" -e "s/127.0.0.1://" -e "/listen/a\                server_name 127.0.0.1;" -e "s/listen 80/listen 8080/g" /backend/nginx.conf
 cat /backend/nginx.conf > /etc/nginx/nginx.conf
 /patch/entrypoint.sh
@@ -136,7 +145,22 @@ EOF
 fi
 
 # ============================ START UP ============================
-mariadbd --user=mysql --datadir="$MYSQL_DATADIR" &
+# Keep the mempool DB user's password in sync with mempool-config.json on
+# every boot, not just first-time datadir init. On a 0.3.x -> 0.4.x upgrade
+# the datadir already exists, so the GRANT ... IDENTIFIED BY above never
+# runs again; the DB user keeps its 0.3.x password forever while
+# mempool-config.json can carry a different one, and the backend fails to
+# authenticate on every restart. --init-file runs before mariadbd starts
+# accepting connections, so this works without a separate authenticated
+# session and is safe to repeat (ALTER USER to the same password is a no-op).
+sync_password_file=$(mktemp)
+cat << EOF > "$sync_password_file"
+ALTER USER '$MYSQL_USER'@'localhost' IDENTIFIED BY '$MYSQL_PASSWORD';
+ALTER USER '$MYSQL_USER'@'%' IDENTIFIED BY '$MYSQL_PASSWORD';
+FLUSH PRIVILEGES;
+EOF
+
+mariadbd --user=mysql --datadir="$MYSQL_DATADIR" --init-file="$sync_password_file" &
 db_process=$!
 
 sed -i "s/user nobody;//g" /etc/nginx/nginx.conf
