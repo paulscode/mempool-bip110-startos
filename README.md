@@ -1,5 +1,10 @@
 # Mempool BIP-110 — Start9 Wrapper
 
+> **Retired.** BIP-110 was a temporary soft fork, and the period this project was built to
+> visualise has passed. It is no longer maintained and has been removed from the Start9 and
+> Umbrel app stores. Installed copies will receive no further updates. For a block explorer,
+> use the official Mempool app, or Mempool Pruned on a pruned node.
+
 A [StartOS](https://start9.com/) wrapper for [Mempool BIP-110](https://github.com/paulscode/mempool-bip110), a fork of the [Mempool](https://mempool.space/) block explorer (v3.2.1) that adds real-time visualization of **BIP-110 miner signaling** and **transaction rule violations**.
 
 > **This is not a wrapper for upstream Mempool.** It packages the BIP-110 fork, which contains custom frontend and backend changes that are not present in the original Mempool project. It can be installed alongside the standard Mempool package on the same StartOS server.
